@@ -26,6 +26,9 @@ Route::get('/logout',[AuthController::class,'logout'])->name('logout');
 //cart
 Route::match(["get","post"],'/cart',[UserController::class,"cart"])->name('cart');
 Route::match(['get','post'],'/add-to-cart/{id}',[UserController::class,"addCart"])->name('cart.add');
+Route::match(['get','post'],'/clear-cart/{id}',[UserController::class,"clearCart"])->name('cart.clear');
+Route::match(['get','post'],'/delete-cart',[UserController::class,"deleteCart"])->name('cart.delete');
+Route::match(['get','post'],'/purchase',[UserController::class,"purchase"])->name('purchase');
 //client
 
 Route::get('/', [HomeController::class, 'index'])->name('home');

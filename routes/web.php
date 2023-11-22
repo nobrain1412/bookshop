@@ -29,6 +29,8 @@ Route::match(['get','post'],'/add-to-cart/{id}',[UserController::class,"addCart"
 Route::match(['get','post'],'/clear-cart/{id}',[UserController::class,"clearCart"])->name('cart.clear');
 Route::match(['get','post'],'/delete-cart',[UserController::class,"deleteCart"])->name('cart.delete');
 Route::match(['get','post'],'/purchase',[UserController::class,"purchase"])->name('purchase');
+//vnpay
+Route::post('/vnpay',[UserController::class,"vnpay"])->name('vnpay');
 //client
 
 Route::get('/', [HomeController::class, 'index'])->name('home');

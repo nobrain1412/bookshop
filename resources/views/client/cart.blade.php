@@ -1,9 +1,7 @@
 @extends('layouts.client')
 @section('content')
 <style>
-    #table{
-        margin-top: 300px;
-    }
+    
 </style>
 <div class="tg-innerbanner tg-haslayout tg-parallax tg-bginnerbanner" data-z-index="-100"
          data-appear-top-offset="600" data-parallax="scroll" data-image-src="images/parallax/bgparallax-07.jpg">
@@ -33,16 +31,17 @@
             <th></th>
         </thead>
         <tbody>
-            @foreach($cart as $c)
+            @foreach(Cart::content() as $c)
                 <tr>
-                    <td><img src="{{ Storage::url($c['image']) }}" alt=""></td>
-                    <td>{{$c['title']}}</td>
-                    <td>{{$c['price']}}</td>
-                    <td>{{$c['quantity']}}</td>
-                    <td>{{$c['price'] * $c['quantity']}}</td>
-                    <td><a style="margin-top: 10px;" href="{{route('cart.clear',['id'=>$c['id']])}}"><button class="btn btn-danger">Xoá sản phẩm</button></a></td>
+                    
+                    <td><img style="width: 100px;" src="{{ Storage::url($c->options->get('image')) }}" alt=""></td>
+                    <td>{{$c->name}}</td>
+                    <td>{{$c->price}}</td>
+                    <td>{{$c->qty}}</td>
+                    <td>{{$c->price * $c->qty}}</td>
+                    <td><a style="margin-top: 10px;" href="{{route('cart.clear',['id'=>$c->id])}}"><button class="btn btn-danger">Xoá sản phẩm</button></a></td>
                 </tr>
-               
+                
             @endforeach
         </tbody>
         

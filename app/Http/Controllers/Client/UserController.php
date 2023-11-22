@@ -21,6 +21,7 @@ use PayPal\Api\RedirectUrls;
 use PayPal\Api\Transaction;
 use PayPal\Auth\OAuthTokenCredential;
 use PayPal\Rest\ApiContext;
+use Cart;
 
 class UserController extends Controller
 {
@@ -82,26 +83,23 @@ class UserController extends Controller
 
     public function cart()
     {
-        $cart = session::get('cart', []);
+        $cart = Cart::content();
         return view('client.cart', compact('cart'));
     }
 
     public function addCart(Request $request, $id)
     {
         $book = Book::find($id);
-        $cart = session::get('cart', []);
-
-        if (isset($cart[$book->id])) {
-            $cart[$book->id]['quantity']++;
-        } else {
-            $cart[$book->id]['id'] = $book->id;
-            $cart[$book->id]['title'] = $book->title;
-            $cart[$book->id]['price'] = $book->price;
-            $cart[$book->id]['image'] = $book->image;
-            $cart[$book->id]['quantity'] = 1;
-        }
-        //dd($cart);
-        session::put('cart', $cart);
+        Cart::add([
+            'id' => $book->id,
+            'name' => $book->title,
+            'qty' => 1,
+            'price' => $book->price,
+            'options' => [
+                'image' => $book->image_url,
+                // Add other options as needed
+            ],
+        ]);
 
         toastr()->success('Sản phẩm đã được thêm vào giỏ hàng!', 'success');
         return redirect(route('home'));
@@ -109,19 +107,14 @@ class UserController extends Controller
 
     public function clearCart($id)
     {
-        $cart = session('cart', []);
-        if (isset($cart[$id])) {
-            unset($cart[$id]);
-            session(['cart' => $cart]);
-            toastr()->success('Giỏ hàng đã được xóa!', 'success');
-        }
+        
 
-        return redirect(route('home'));
+        return redirect(route('cart'));
     }
 
     public function deleteCart()
     {
-        session()->forget('cart');
+        Cart::destroy();
         return redirect(route('home'));
     }
     public function purchase(Request $request)
@@ -131,5 +124,76 @@ class UserController extends Controller
         $provider->setApiCredentials(config('paypal'));
 
         return view('client.purchase', compact('cart'));
+    }
+
+    public function vnpay()
+    {
+
+        $vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+        $vnp_Returnurl = "https://localhost/vnpay_php/vnpay_return.php";
+        $vnp_TmnCode = "G4Z1U2GJ"; //Mã website tại VNPAY 
+        $vnp_HashSecret = "IWXHZBNPWNQTLRWNWOANTITLYJXLVCKS"; //Chuỗi bí mật
+
+        $vnp_TxnRef = "10000"; //Mã đơn hàng. Trong thực tế Merchant cần insert đơn hàng vào DB và gửi mã này sang VNPAY
+        $vnp_OrderInfo = "thanh toán hoá đơn";
+        $vnp_OrderType = "bookshop";
+        
+        $vnp_Amount =  floatval(Cart::total()) * 100000;
+        $vnp_Locale = "VN";
+        $vnp_BankCode = "NCB";
+        $vnp_IpAddr = $_SERVER['REMOTE_ADDR'];
+
+        $inputData = array(
+            "vnp_Version" => "2.1.0",
+            "vnp_TmnCode" => $vnp_TmnCode,
+            "vnp_Amount" => $vnp_Amount,
+            "vnp_Command" => "pay",
+            "vnp_CreateDate" => date('YmdHis'),
+            "vnp_CurrCode" => "VND",
+            "vnp_IpAddr" => $vnp_IpAddr,
+            "vnp_Locale" => $vnp_Locale,
+            "vnp_OrderInfo" => $vnp_OrderInfo,
+            "vnp_OrderType" => $vnp_OrderType,
+            "vnp_ReturnUrl" => $vnp_Returnurl,
+            "vnp_TxnRef" => $vnp_TxnRef,
+        );
+
+        if (isset($vnp_BankCode) && $vnp_BankCode != "") {
+            $inputData['vnp_BankCode'] = $vnp_BankCode;
+        }
+        if (isset($vnp_Bill_State) && $vnp_Bill_State != "") {
+            $inputData['vnp_Bill_State'] = $vnp_Bill_State;
+        }
+
+        //var_dump($inputData);
+        ksort($inputData);
+        $query = "";
+        $i = 0;
+        $hashdata = "";
+        foreach ($inputData as $key => $value) {
+            if ($i == 1) {
+                $hashdata .= '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashdata .= urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+            $query .= urlencode($key) . "=" . urlencode($value) . '&';
+        }
+
+        $vnp_Url = $vnp_Url . "?" . $query;
+        if (isset($vnp_HashSecret)) {
+            $vnpSecureHash =   hash_hmac('sha512', $hashdata, $vnp_HashSecret); //  
+            $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
+        }
+        $returnData = array(
+            'code' => '00', 'message' => 'success', 'data' => $vnp_Url
+        );
+        if (isset($_POST['redirect'])) {
+            header('Location: ' . $vnp_Url);
+            die();
+        } else {
+            echo json_encode($returnData);
+        }
+        // vui lòng tham khảo thêm tại code demo
     }
 }
